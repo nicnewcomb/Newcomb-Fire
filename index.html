@@ -2,223 +2,527 @@
 
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pottery Studio Manager</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pottery Studio Manager</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="text/babel">
-const { useState, useEffect } = React;
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect} = React;
+const supabase = window.supabase.createClient(
+  'https://bvciswqwilpqvcbqesyp.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2lzd3F3aWxwcXZjYnFlc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MjQ3MDAsImV4cCI6MjA4NTQwMDcwMH0.kgt86QcNIWLfLaEF8h5ZbGJ61nYXIFvNXvtfQcikiTM'
+);
 
-const SUPABASE_URL = ‘https://bvciswqwilpqvcbqesyp.supabase.co’;
-const SUPABASE_ANON_KEY = ‘eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2lzd3F3aWxwcXZjYnFlc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MjQ3MDAsImV4cCI6MjA4NTQwMDcwMH0.kgt86QcNIWLfLaEF8h5ZbGJ61nYXIFvNXvtfQcikiTM’;
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const Camera = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>);
-const Download = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>);
-const UserPlus = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>);
-const Users = () => (<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
-const Package = () => (<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>);
-const RefreshCw = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>);
-
-const PotteryStudioApp = () => {
+function App() {
 const [view, setView] = useState(‘member’);
-const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-const [adminPassword, setAdminPassword] = useState(’’);
+const [adminAuth, setAdminAuth] = useState(false);
+const [adminPass, setAdminPass] = useState(’’);
 const [members, setMembers] = useState([]);
 const [entries, setEntries] = useState([]);
-const [showAddMember, setShowAddMember] = useState(false);
+const [showAdd, setShowAdd] = useState(false);
 const [loading, setLoading] = useState(false);
-const ADMIN_PASSWORD = ‘pottery2024’;
 
-const [formData, setFormData] = useState({memberId:’’,description:’’,anyNotes:’’,firingTemp:’’,kilnSpace:’’,width:’’,depth:’’,height:’’,photo:null,photoPreview:null,paymentMethod:’’});
-const [newMember, setNewMember] = useState({name:’’,email:’’});
+const [memberId, setMemberId] = useState(’’);
+const [desc, setDesc] = useState(’’);
+const [notes, setNotes] = useState(’’);
+const [temp, setTemp] = useState(’’);
+const [space, setSpace] = useState(’’);
+const [width, setWidth] = useState(’’);
+const [depth, setDepth] = useState(’’);
+const [height, setHeight] = useState(’’);
+const [photo, setPhoto] = useState(null);
+const [preview, setPreview] = useState(null);
+const [payment, setPayment] = useState(’’);
 
-const kilnSpaceRates = {full:{label:‘Full Kiln’,price:65},half:{label:‘1/2 Kiln’,price:40},quarter:{label:‘1/4 Kiln’,price:25},halfRound8:{label:‘1/2 Round Shelf (up to 8” tall)’,price:20},halfRound3:{label:‘1/2 Round Shelf (up to 3” tall)’,price:10},cubicInch:{label:‘By Cubic Inch ($0.02/in³, $2 min)’,price:0}};
+const [newName, setNewName] = useState(’’);
+const [newEmail, setNewEmail] = useState(’’);
 
-useEffect(() => {loadMembers();loadEntries();}, []);
-
-const loadMembers = async () => {
-setLoading(true);
-try {
-const {data,error} = await supabase.from(‘members’).select(’*’).order(‘name’,{ascending:true});
-if(error) throw error;
-setMembers(data||[]);
-} catch(error) {
-console.error(‘Error:’,error);
-alert(‘Error loading members’);
-} finally {
-setLoading(false);
-}
+const rates = {
+full: {label: ‘Full Kiln’, price: 65},
+half: {label: ‘1/2 Kiln’, price: 40},
+quarter: {label: ‘1/4 Kiln’, price: 25},
+round8: {label: ‘1/2 Round Shelf (up to 8” tall)’, price: 20},
+round3: {label: ‘1/2 Round Shelf (up to 3” tall)’, price: 10},
+cubic: {label: ‘By Cubic Inch ($0.02/in³, $2 min)’, price: 0}
 };
 
-const loadEntries = async () => {
+useEffect(() => {
+loadMembers();
+loadEntries();
+}, []);
+
+async function loadMembers() {
 setLoading(true);
 try {
-const {data,error} = await supabase.from(‘entries’).select(’*’).order(‘created_at’,{ascending:false});
-if(error) throw error;
-setEntries(data||[]);
-} catch(error) {
-console.error(‘Error:’,error);
-} finally {
+const {data, error} = await supabase.from(‘members’).select(’*’).order(‘name’);
+if (error) throw error;
+setMembers(data || []);
+} catch (e) {
+console.error(e);
+}
 setLoading(false);
 }
-};
 
-const addMember = async () => {
-if(!newMember.name||!newMember.email) {alert(‘Please enter both name and email’);return;}
+async function loadEntries() {
 setLoading(true);
 try {
-const {data,error} = await supabase.from(‘members’).insert([{name:newMember.name,email:newMember.email}]).select();
-if(error) throw error;
+const {data, error} = await supabase.from(‘entries’).select(’*’).order(‘created_at’, {ascending: false});
+if (error) throw error;
+setEntries(data || []);
+} catch (e) {
+console.error(e);
+}
+setLoading(false);
+}
+
+async function addMember() {
+if (!newName || !newEmail) {
+alert(‘Please enter name and email’);
+return;
+}
+setLoading(true);
+try {
+const {error} = await supabase.from(‘members’).insert([{name: newName, email: newEmail}]);
+if (error) throw error;
 await loadMembers();
-setNewMember({name:’’,email:’’});
-setShowAddMember(false);
+setNewName(’’);
+setNewEmail(’’);
+setShowAdd(false);
 alert(‘Member added!’);
-} catch(error) {
-alert(’Error: ’+error.message);
-} finally {
+} catch (e) {
+alert(’Error: ’ + e.message);
+}
 setLoading(false);
 }
-};
 
-const calculateCost = () => {
-if(formData.kilnSpace===‘cubicInch’) {
-const w=parseFloat(formData.width)||0;
-const d=parseFloat(formData.depth)||0;
-const h=parseFloat(formData.height)||0;
-return Math.max(w*d*h*0.02,2);
-} else if(formData.kilnSpace) {
-return kilnSpaceRates[formData.kilnSpace].price;
+function calcCost() {
+if (space === ‘cubic’) {
+const w = parseFloat(width) || 0;
+const d = parseFloat(depth) || 0;
+const h = parseFloat(height) || 0;
+return Math.max(w * d * h * 0.02, 2);
 }
-return 0;
-};
+return rates[space] ? rates[space].price : 0;
+}
 
-const handlePhotoUpload = (e) => {
+function handlePhoto(e) {
 const file = e.target.files[0];
-if(file) {
-if(file.size>1024*1024) {alert(‘Photo too large. Max 1MB.’);return;}
+if (!file) return;
+if (file.size > 1024 * 1024) {
+alert(‘Photo too large. Max 1MB’);
+return;
+}
 const reader = new FileReader();
-reader.onloadend = () => setFormData({…formData,photo:reader.result,photoPreview:reader.result});
+reader.onloadend = function() {
+setPhoto(reader.result);
+setPreview(reader.result);
+};
 reader.readAsDataURL(file);
 }
-};
 
-const handleSubmit = async () => {
-if(!formData.memberId||!formData.firingTemp||!formData.kilnSpace||!formData.paymentMethod) {alert(‘Please fill required fields’);return;}
-if(formData.kilnSpace===‘cubicInch’&&(!formData.width||!formData.height||!formData.depth)) {alert(‘Please enter dimensions’);return;}
-const member = members.find(m=>m.id===parseInt(formData.memberId));
-const cost = calculateCost();
+async function submit() {
+if (!memberId || !temp || !space || !payment) {
+alert(‘Please fill required fields’);
+return;
+}
+if (space === ‘cubic’ && (!width || !height || !depth)) {
+alert(‘Please enter dimensions’);
+return;
+}
+
+```
+const member = members.find(m => m.id === parseInt(memberId));
+const cost = calcCost();
 setLoading(true);
+
 try {
-const entryData = {member_id:parseInt(formData.memberId),member_name:member.name,member_email:member.email,description:formData.description||null,any_notes:formData.anyNotes||null,firing_temp:formData.firingTemp,kiln_space:kilnSpaceRates[formData.kilnSpace].label,dimensions:formData.kilnSpace===‘cubicInch’?`${formData.width}" × ${formData.depth}" × ${formData.height}"`:‘N/A’,cubic_inches:formData.kilnSpace===‘cubicInch’?parseFloat(formData.width)*parseFloat(formData.depth)*parseFloat(formData.height):null,cost:parseFloat(cost.toFixed(2)),photo:formData.photo||null,payment_method:formData.paymentMethod,status:formData.paymentMethod===‘venmo’?‘Paid via Venmo’:‘Bill End of Month’};
-const {data,error} = await supabase.from(‘entries’).insert([entryData]).select();
-if(error) throw error;
-await loadEntries();
-if(formData.paymentMethod===‘venmo’) {
-window.open(`https://venmo.com/u/newcomb_BCAT?txn=pay&amount=${cost.toFixed(2)}&note=${encodeURIComponent('Kiln firing - '+member.name)}`,’_blank’);
+  const entry = {
+    member_id: parseInt(memberId),
+    member_name: member.name,
+    member_email: member.email,
+    description: desc || null,
+    any_notes: notes || null,
+    firing_temp: temp,
+    kiln_space: rates[space].label,
+    dimensions: space === 'cubic' ? width + '" × ' + depth + '" × ' + height + '"' : 'N/A',
+    cubic_inches: space === 'cubic' ? parseFloat(width) * parseFloat(depth) * parseFloat(height) : null,
+    cost: parseFloat(cost.toFixed(2)),
+    photo: photo,
+    payment_method: payment,
+    status: payment === 'venmo' ? 'Paid via Venmo' : 'Bill End of Month'
+  };
+  
+  const {error} = await supabase.from('entries').insert([entry]);
+  if (error) throw error;
+  
+  await loadEntries();
+  
+  if (payment === 'venmo') {
+    window.open('https://venmo.com/u/newcomb_BCAT?txn=pay&amount=' + cost.toFixed(2) + '&note=' + encodeURIComponent('Kiln firing - ' + member.name), '_blank');
+  }
+  
+  setMemberId('');
+  setDesc('');
+  setNotes('');
+  setTemp('');
+  setSpace('');
+  setWidth('');
+  setDepth('');
+  setHeight('');
+  setPhoto(null);
+  setPreview(null);
+  setPayment('');
+  
+  alert('Entry submitted!');
+} catch (e) {
+  alert('Error: ' + e.message);
 }
-setFormData({memberId:’’,description:’’,anyNotes:’’,firingTemp:’’,kilnSpace:’’,width:’’,depth:’’,height:’’,photo:null,photoPreview:null,paymentMethod:’’});
-alert(‘Entry submitted!’);
-} catch(error) {
-alert(’Error: ’+error.message);
-} finally {
 setLoading(false);
-}
-};
+```
 
-const exportToCSV = () => {
-const headers = [‘Date’,‘Member Name’,‘Email’,‘Description’,‘Any Notes’,‘Firing Temp’,‘Kiln Space’,‘Dimensions’,‘Cost’,‘Payment Method’,‘Status’];
-const csvData = entries.map(e=>[new Date(e.created_at).toLocaleDateString(),e.member_name,e.member_email,e.description||’’,e.any_notes||’’,e.firing_temp,e.kiln_space,e.dimensions,e.cost,e.payment_method===‘venmo’?‘Venmo’:‘Monthly Bill’,e.status]);
-const csvContent = [headers.join(’,’),…csvData.map(row=>row.map(cell=>`"${cell}"`).join(’,’))].join(’\n’);
-const blob = new Blob([csvContent],{type:‘text/csv’});
+}
+
+function exportCSV() {
+const headers = [‘Date’, ‘Member’, ‘Email’, ‘Description’, ‘Notes’, ‘Temp’, ‘Space’, ‘Dimensions’, ‘Cost’, ‘Payment’, ‘Status’];
+const rows = entries.map(e => [
+new Date(e.created_at).toLocaleDateString(),
+e.member_name,
+e.member_email,
+e.description || ‘’,
+e.any_notes || ‘’,
+e.firing_temp,
+e.kiln_space,
+e.dimensions,
+e.cost,
+e.payment_method === ‘venmo’ ? ‘Venmo’ : ‘Monthly’,
+e.status
+]);
+
+```
+const csv = [headers.join(',')].concat(rows.map(r => r.map(c => '"' + c + '"').join(','))).join('\n');
+const blob = new Blob([csv], {type: 'text/csv'});
 const url = window.URL.createObjectURL(blob);
-const link = document.createElement(‘a’);
-link.href = url;
-link.download = `pottery-entries-${new Date().toISOString().split('T')[0]}.csv`;
-link.click();
-window.URL.revokeObjectURL(url);
-};
+const a = document.createElement('a');
+a.href = url;
+a.download = 'pottery-entries-' + new Date().toISOString().split('T')[0] + '.csv';
+a.click();
+```
 
-const handleAdminLogin = () => {
-if(adminPassword===ADMIN_PASSWORD) {setIsAdminAuthenticated(true);setAdminPassword(’’);}
-else {alert(‘Incorrect password’);setAdminPassword(’’);}
-};
-
-const handleAdminLogout = () => {setIsAdminAuthenticated(false);setView(‘member’);};
-const handleViewChange = (newView) => setView(newView);
-
-const MemberView = () => (
-<div className="space-y-6">
-<div className="bg-white border border-gray-200 rounded-lg p-8">
-<div className="flex justify-between items-center mb-6">
-<h2 className="text-2xl font-light text-gray-900">Submit Piece for Firing</h2>
-<button onClick={()=>{loadMembers();loadEntries();}} className=“text-gray-600 hover:text-gray-900 p-2”><RefreshCw/></button>
-</div>
-{loading && <div className="text-center py-4 text-blue-600">Loading…</div>}
-<div className="space-y-5">
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Select Your Name *</label><select value={formData.memberId} onChange={(e)=>setFormData({…formData,memberId:e.target.value})} className=“w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”><option value="">Choose your name…</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Description of Piece</label><input type=“text” value={formData.description} onChange={(e)=>setFormData({…formData,description:e.target.value})} className=“w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent” placeholder=“e.g., Large bowl”/></div>
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Any Notes?</label><input type=“text” value={formData.anyNotes} onChange={(e)=>setFormData({…formData,anyNotes:e.target.value})} className=“w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent” placeholder=“e.g., Celadon exterior”/></div>
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Firing Temperature *</label><select value={formData.firingTemp} onChange={(e)=>setFormData({…formData,firingTemp:e.target.value})} className=“w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”><option value="">Select…</option><option value="Bisque (Cone 04)">Bisque (Cone 04)</option><option value="Bisque (Cone 05)">Bisque (Cone 05)</option><option value="Bisque (Cone 06)">Bisque (Cone 06)</option><option value="Glaze (Cone 6)">Glaze (Cone 6)</option><option value="Other">Other</option></select></div>
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Kiln Space *</label><select value={formData.kilnSpace} onChange={(e)=>setFormData({…formData,kilnSpace:e.target.value})} className=“w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”><option value="">Select…</option>{Object.entries(kilnSpaceRates).map(([key,value])=><option key={key} value={key}>{value.label} {value.price>0&&`- $${value.price}`}</option>)}</select></div>
-{formData.kilnSpace===‘cubicInch’&&<div className="bg-gray-50 p-4 rounded border border-gray-200"><h3 className="font-medium text-gray-900 mb-3">Dimensions (inches)</h3><div className="grid grid-cols-3 gap-4"><div><label className="block text-sm text-gray-600 mb-1">Width *</label><input type=“number” step=“0.5” value={formData.width} onChange={(e)=>setFormData({…formData,width:e.target.value})} className=“w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”/></div><div><label className="block text-sm text-gray-600 mb-1">Depth *</label><input type=“number” step=“0.5” value={formData.depth} onChange={(e)=>setFormData({…formData,depth:e.target.value})} className=“w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”/></div><div><label className="block text-sm text-gray-600 mb-1">Height *</label><input type=“number” step=“0.5” value={formData.height} onChange={(e)=>setFormData({…formData,height:e.target.value})} className=“w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”/></div></div><div className="mt-3 text-right"><span className="text-sm text-gray-600">Cost: </span><span className="text-xl font-semibold text-green-600">${calculateCost().toFixed(2)}</span></div></div>}
-{formData.kilnSpace&&formData.kilnSpace!==‘cubicInch’&&<div className="bg-green-50 p-4 rounded border border-green-200"><div className="text-right"><span className="text-sm text-gray-600">Cost: </span><span className="text-2xl font-semibold text-green-700">${calculateCost().toFixed(2)}</span></div></div>}
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Photo of Piece</label><div className="flex items-center gap-4"><label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded flex items-center gap-2 transition-colors border border-gray-300"><Camera/>Upload Photo<input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden"/></label>{formData.photoPreview&&<img src={formData.photoPreview} alt="Preview" className="h-20 w-20 object-cover rounded border-2 border-gray-300"/>}</div><p className="text-xs text-gray-500 mt-1">Max 1MB</p></div>
-<div><label className="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label><div className="flex gap-4"><label className="flex items-center cursor-pointer bg-white border border-gray-300 px-4 py-3 rounded hover:bg-gray-50"><input type=“radio” name=“paymentMethod” value=“venmo” checked={formData.paymentMethod===‘venmo’} onChange={(e)=>setFormData({…formData,paymentMethod:e.target.value})} className=“mr-3”/><span className="font-medium text-blue-600">Pay Now via Venmo</span></label><label className="flex items-center cursor-pointer bg-white border border-gray-300 px-4 py-3 rounded hover:bg-gray-50"><input type=“radio” name=“paymentMethod” value=“monthly” checked={formData.paymentMethod===‘monthly’} onChange={(e)=>setFormData({…formData,paymentMethod:e.target.value})} className=“mr-3”/><span className="font-medium text-green-600">Bill at End of Month</span></label></div></div>
-<button onClick={handleSubmit} disabled={loading} className="w-full bg-black hover:bg-gray-800 text-white py-3 rounded font-medium transition-colors disabled:bg-gray-400">{loading?‘Submitting…’:‘Submit for Firing’}</button>
-</div>
-</div>
-</div>
-);
-
-const AdminView = () => {
-if(!isAdminAuthenticated) {
-return (<div className="max-w-md mx-auto"><div className="bg-white border border-gray-200 rounded-lg p-8"><h2 className="text-2xl font-light text-gray-900 mb-6 text-center">Admin Login</h2><div className="space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-2">Password</label><input type=“password” value={adminPassword} onChange={(e)=>setAdminPassword(e.target.value)} onKeyPress={(e)=>e.key===‘Enter’&&handleAdminLogin()} className=“w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent” placeholder=“Enter admin password”/></div><button onClick={handleAdminLogin} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-medium transition-colors">Login</button></div></div></div>);
 }
+
+function login() {
+if (adminPass === ‘pottery2024’) {
+setAdminAuth(true);
+setAdminPass(’’);
+} else {
+alert(‘Incorrect password’);
+setAdminPass(’’);
+}
+}
+
+function logout() {
+setAdminAuth(false);
+setView(‘member’);
+}
+
+const totalUnbilled = entries.filter(e => e.status === ‘Bill End of Month’).reduce((sum, e) => sum + parseFloat(e.cost), 0).toFixed(2);
+
+if (view === ‘member’) {
 return (
-<div className="space-y-6">
-{loading&&<div className="text-center py-4 text-blue-600">Loading…</div>}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-<div className="bg-white border border-gray-200 rounded-lg p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Total Members</p><p className="text-3xl font-light text-gray-900 mt-1">{members.length}</p></div><Users/></div></div>
-<div className="bg-white border border-gray-200 rounded-lg p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Total Entries</p><p className="text-3xl font-light text-gray-900 mt-1">{entries.length}</p></div><Package/></div></div>
-<div className="bg-white border border-gray-200 rounded-lg p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-600">Unbilled</p><p className="text-3xl font-light text-green-700 mt-1">${entries.filter(e=>e.status===‘Bill End of Month’).reduce((sum,e)=>sum+parseFloat(e.cost),0).toFixed(2)}</p></div></div></div>
-</div>
-<div className="bg-white border border-gray-200 rounded-lg p-6">
-<div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-light text-gray-900">Member Management</h2><div className="flex gap-2"><button onClick={loadMembers} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2"><RefreshCw/>Refresh</button><button onClick={()=>setShowAddMember(!showAddMember)} className=“bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2”><UserPlus/>Add Member</button></div></div>
-{showAddMember&&<div className="mb-6 bg-gray-50 p-4 rounded border border-gray-200"><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">Name</label><input type=“text” value={newMember.name} onChange={(e)=>setNewMember({…newMember,name:e.target.value})} className=“w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”/></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type=“email” value={newMember.email} onChange={(e)=>setNewMember({…newMember,email:e.target.value})} className=“w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent”/></div></div><div className="mt-3 flex gap-2"><button onClick={addMember} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400">{loading?‘Adding…’:‘Add’}</button><button onClick={()=>setShowAddMember(false)} className=“bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded”>Cancel</button></div></div>}
-<div className="space-y-2">{members.map(m=><div key={m.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200"><div><p className="font-medium text-gray-900">{m.name}</p><p className="text-sm text-gray-600">{m.email}</p></div></div>)}</div>
-</div>
-<div className="bg-white border border-gray-200 rounded-lg p-6">
-<div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-light text-gray-900">All Entries</h2><div className="flex gap-2"><button onClick={loadEntries} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex items-center gap-2"><RefreshCw/>Refresh</button><button onClick={exportToCSV} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"><Download/>Export CSV</button></div></div>
-<div className="space-y-4">{entries.length===0?<p className="text-center text-gray-500 py-8">No entries yet</p>:entries.map(e=><div key={e.id} className="border border-gray-200 rounded p-4"><div className="flex gap-4">{e.photo&&<img src={e.photo} alt="Piece" className="w-24 h-24 object-cover rounded"/>}<div className="flex-1"><div className="flex justify-between items-start"><div><p className="font-semibold text-gray-900">{e.member_name}</p><p className="text-sm text-gray-600">{e.description}</p><p className="text-xs text-gray-500 mt-1">{e.any_notes}</p></div><div className="text-right"><p className="text-xl font-semibold text-green-700">${e.cost}</p><span className={`text-xs px-2 py-1 rounded ${e.status==='Paid via Venmo'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800'}`}>{e.status}</span></div></div><div className="grid grid-cols-3 gap-2 mt-3 text-sm"><div><span className="text-gray-500">Date:</span> {new Date(e.created_at).toLocaleDateString()}</div><div><span className="text-gray-500">Firing:</span> {e.firing_temp}</div><div><span className="text-gray-500">Space:</span> {e.kiln_space}</div></div></div></div></div>)}</div>
+<div className="min-h-screen bg-gray-50">
+<div className="bg-black text-white py-6 px-6">
+<div className="max-w-6xl mx-auto flex justify-between items-center">
+<h1 className="text-3xl font-light">Pottery Studio Manager</h1>
+<div className="flex gap-2">
+<button onClick={() => setView(‘member’)} className=“px-4 py-2 rounded bg-blue-600”>Member Portal</button>
+<button onClick={() => setView(‘admin’)} className=“px-4 py-2 rounded bg-gray-800 hover:bg-gray-700”>Admin Panel</button>
 </div>
 </div>
+</div>
+
+```
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="bg-white border rounded-lg p-8">
+        <h2 className="text-2xl font-light mb-6">Submit Piece for Firing</h2>
+        
+        {loading && <div className="text-center py-4 text-blue-600">Loading...</div>}
+        
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium mb-2">Select Your Name *</label>
+            <select value={memberId} onChange={e => setMemberId(e.target.value)} className="w-full px-4 py-2 border rounded">
+              <option value="">Choose your name...</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Description</label>
+            <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="e.g., Large bowl" className="w-full px-4 py-2 border rounded" />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Any Notes?</label>
+            <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g., Celadon glaze" className="w-full px-4 py-2 border rounded" />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Firing Temperature *</label>
+            <select value={temp} onChange={e => setTemp(e.target.value)} className="w-full px-4 py-2 border rounded">
+              <option value="">Select...</option>
+              <option value="Bisque (Cone 04)">Bisque (Cone 04)</option>
+              <option value="Bisque (Cone 05)">Bisque (Cone 05)</option>
+              <option value="Bisque (Cone 06)">Bisque (Cone 06)</option>
+              <option value="Glaze (Cone 6)">Glaze (Cone 6)</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Kiln Space *</label>
+            <select value={space} onChange={e => setSpace(e.target.value)} className="w-full px-4 py-2 border rounded">
+              <option value="">Select...</option>
+              <option value="full">Full Kiln - $65</option>
+              <option value="half">1/2 Kiln - $40</option>
+              <option value="quarter">1/4 Kiln - $25</option>
+              <option value="round8">1/2 Round Shelf (up to 8" tall) - $20</option>
+              <option value="round3">1/2 Round Shelf (up to 3" tall) - $10</option>
+              <option value="cubic">By Cubic Inch ($0.02/in³, $2 min)</option>
+            </select>
+          </div>
+          
+          {space === 'cubic' && (
+            <div className="bg-gray-50 p-4 rounded border">
+              <h3 className="font-medium mb-3">Dimensions (inches)</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm mb-1">Width *</label>
+                  <input type="number" step="0.5" value={width} onChange={e => setWidth(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Depth *</label>
+                  <input type="number" step="0.5" value={depth} onChange={e => setDepth(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Height *</label>
+                  <input type="number" step="0.5" value={height} onChange={e => setHeight(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+              </div>
+              <div className="mt-3 text-right">
+                <span className="text-sm">Cost: </span>
+                <span className="text-xl font-semibold text-green-600">${calcCost().toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          
+          {space && space !== 'cubic' && (
+            <div className="bg-green-50 p-4 rounded border border-green-200">
+              <div className="text-right">
+                <span className="text-sm">Cost: </span>
+                <span className="text-2xl font-semibold text-green-700">${calcCost().toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Photo of Piece</label>
+            <div className="flex items-center gap-4">
+              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded border">
+                Upload Photo
+                <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+              </label>
+              {preview && <img src={preview} alt="Preview" className="h-20 w-20 object-cover rounded border-2" />}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Max 1MB</p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Payment Method *</label>
+            <div className="flex gap-4">
+              <label className="flex items-center cursor-pointer bg-white border px-4 py-3 rounded">
+                <input type="radio" name="pay" value="venmo" checked={payment === 'venmo'} onChange={e => setPayment(e.target.value)} className="mr-3" />
+                <span className="font-medium text-blue-600">Pay Now via Venmo</span>
+              </label>
+              <label className="flex items-center cursor-pointer bg-white border px-4 py-3 rounded">
+                <input type="radio" name="pay" value="monthly" checked={payment === 'monthly'} onChange={e => setPayment(e.target.value)} className="mr-3" />
+                <span className="font-medium text-green-600">Bill at End of Month</span>
+              </label>
+            </div>
+          </div>
+          
+          <button onClick={submit} disabled={loading} className="w-full bg-black hover:bg-gray-800 text-white py-3 rounded font-medium disabled:bg-gray-400">
+            {loading ? 'Submitting...' : 'Submit for Firing'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 );
-};
+```
+
+}
+
+if (!adminAuth) {
+return (
+<div className="min-h-screen bg-gray-50">
+<div className="bg-black text-white py-6 px-6">
+<div className="max-w-6xl mx-auto flex justify-between items-center">
+<h1 className="text-3xl font-light">Pottery Studio Manager</h1>
+<div className="flex gap-2">
+<button onClick={() => setView(‘member’)} className=“px-4 py-2 rounded bg-gray-800 hover:bg-gray-700”>Member Portal</button>
+<button onClick={() => setView(‘admin’)} className=“px-4 py-2 rounded bg-green-600”>Admin Panel</button>
+</div>
+</div>
+</div>
+
+```
+    <div className="max-w-md mx-auto px-6 py-12">
+      <div className="bg-white border rounded-lg p-8">
+        <h2 className="text-2xl font-light mb-6 text-center">Admin Login</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Password</label>
+            <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} onKeyPress={e => e.key === 'Enter' && login()} placeholder="Enter admin password" className="w-full px-4 py-2 border rounded" />
+          </div>
+          <button onClick={login} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-medium">Login</button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+```
+
+}
 
 return (
 <div className="min-h-screen bg-gray-50">
-<div className="bg-black text-white py-6 px-6 mb-8">
+<div className="bg-black text-white py-6 px-6">
 <div className="max-w-6xl mx-auto flex justify-between items-center">
 <h1 className="text-3xl font-light">Pottery Studio Manager</h1>
-<div className="flex gap-2 items-center">
-<button onClick={()=>handleViewChange(‘member’)} className={`px-4 py-2 rounded transition-colors ${view==='member'?'bg-blue-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Member Portal</button>
-<button onClick={()=>handleViewChange(‘admin’)} className={`px-4 py-2 rounded transition-colors ${view==='admin'?'bg-green-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Admin Panel</button>
-{isAdminAuthenticated&&view===‘admin’&&<button onClick={handleAdminLogout} className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white transition-colors ml-2">Logout</button>}
+<div className="flex gap-2">
+<button onClick={() => setView(‘member’)} className=“px-4 py-2 rounded bg-gray-800 hover:bg-gray-700”>Member Portal</button>
+<button onClick={() => setView(‘admin’)} className=“px-4 py-2 rounded bg-green-600”>Admin Panel</button>
+<button onClick={logout} className="px-4 py-2 rounded bg-red-600 hover:bg-red-700">Logout</button>
 </div>
 </div>
 </div>
-<div className="max-w-6xl mx-auto px-6 pb-12">{view===‘member’?<MemberView/>:<AdminView/>}</div>
-</div>
-);
-};
 
-ReactDOM.render(<PotteryStudioApp/>, document.getElementById(‘root’));
+```
+  <div className="max-w-6xl mx-auto px-6 py-12">
+    {loading && <div className="text-center py-4 text-blue-600">Loading...</div>}
+    
+    <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="bg-white border rounded-lg p-6">
+        <p className="text-sm text-gray-600">Total Members</p>
+        <p className="text-3xl font-light mt-1">{members.length}</p>
+      </div>
+      <div className="bg-white border rounded-lg p-6">
+        <p className="text-sm text-gray-600">Total Entries</p>
+        <p className="text-3xl font-light mt-1">{entries.length}</p>
+      </div>
+      <div className="bg-white border rounded-lg p-6">
+        <p className="text-sm text-gray-600">Unbilled</p>
+        <p className="text-3xl font-light text-green-700 mt-1">${totalUnbilled}</p>
+      </div>
+    </div>
+    
+    <div className="bg-white border rounded-lg p-6 mb-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-light">Member Management</h2>
+        <div className="flex gap-2">
+          <button onClick={loadMembers} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Refresh</button>
+          <button onClick={() => setShowAdd(!showAdd)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Member</button>
+        </div>
+      </div>
+      
+      {showAdd && (
+        <div className="mb-6 bg-gray-50 p-4 rounded border">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Name</label>
+              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full px-3 py-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full px-3 py-2 border rounded" />
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button onClick={addMember} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:bg-gray-400">{loading ? 'Adding...' : 'Add'}</button>
+            <button onClick={() => setShowAdd(false)} className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">Cancel</button>
+          </div>
+        </div>
+      )}
+      
+      <div className="space-y-2">
+        {members.map(m => (
+          <div key={m.id} className="p-3 bg-gray-50 rounded border">
+            <p className="font-medium">{m.name}</p>
+            <p className="text-sm text-gray-600">{m.email}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+    
+    <div className="bg-white border rounded-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-light">All Entries</h2>
+        <div className="flex gap-2">
+          <button onClick={loadEntries} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Refresh</button>
+          <button onClick={exportCSV} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Export CSV</button>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        {entries.length === 0 ? (
+          <p className="text-center text-gray-500 py-8">No entries yet</p>
+        ) : (
+          entries.map(e => (
+            <div key={e.id} className="border rounded p-4">
+              <div className="flex gap-4">
+                {e.photo && <img src={e.photo} alt="Piece" className="w-24 h-24 object-cover rounded" />}
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold">{e.member_name}</p>
+                      <p className="text-sm text-gray-600">{e.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">{e.any_notes}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-semibold text-green-700">${e.cost}</p>
+                      <span className={'text-xs px-2 py-1 rounded ' + (e.status === 'Paid via Venmo' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800')}>
+                        {e.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
+                    <div><span className="text-gray-500">Date:</span> {new Date(e.created_at).toLocaleDateString()}</div>
+                    <div><span className="text-gray-500">Firing:</span> {e.firing_temp}</div>
+                    <div><span className="text-gray-500">Space:</span> {e.kiln_space}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+);
+}
+
+ReactDOM.render(<App />, document.getElementById(‘root’));
+</script>
+
+</body>
+</html>
