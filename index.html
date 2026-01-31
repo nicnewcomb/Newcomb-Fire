@@ -21,9 +21,21 @@ const supabase = window.supabase.createClient(
 );
 
 function App() {
-  const [view, setView] = useState('add');
+  const [view, setView] = useState('member');
   const [members, setMembers] = useState([]);
+  const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  const [selectedMember, setSelectedMember] = useState('');
+  const [description, setDescription] = useState('');
+  const [notes, setNotes] = useState('');
+  const [firingTemp, setFiringTemp] = useState('');
+  const [kilnSpace, setKilnSpace] = useState('');
+  const [width, setWidth] = useState('');
+  const [depth, setDepth] = useState('');
+  const [height, setHeight] = useState('');
+  const [payment, setPayment] = useState('');
+  
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
@@ -31,15 +43,17 @@ function App() {
   
   useEffect(function() {
     loadMembers();
+    loadEntries();
   }, []);
   
   async function loadMembers() {
-    setLoading(true);
     const result = await supabase.from('members').select('*').order('name');
-    if (result.data) {
-      setMembers(result.data);
-    }
-    setLoading(false);
+    if (result.data) setMembers(result.data);
+  }
+  
+  async function loadEntries() {
+    const result = await supabase.from('entries').select('*').order('created_at', {ascending: false});
+    if (result.data) setEntries(result.data);
   }
   
   async function addMember() {
@@ -47,13 +61,8 @@ function App() {
       alert('Please enter name and email');
       return;
     }
-    
     setLoading(true);
-    const result = await supabase.from('members').insert([{
-      name: newName,
-      email: newEmail
-    }]);
-    
+    const result = await supabase.from('members').insert([{name: newName, email: newEmail}]);
     if (result.error) {
       alert('Error: ' + result.error.message);
     } else {
@@ -65,30 +74,249 @@ function App() {
     setLoading(false);
   }
   
+  function calculateCost() {
+    if (kilnSpace === 'cubic') {
+      const w = parseFloat(width) || 0;
+      const d = parseFloat(depth) || 0;
+      const h = parseFloat(height) || 0;
+      const cubic = w * d * h;
+      return Math.max(cubic * 0.02, 2);
+    }
+    const rates = {full: 65, half: 40, quarter: 25, round8: 20, round3: 10};
+    return rates[kilnSpace] || 0;
+  }
+  
+  async function submitEntry() {
+    if (!selectedMember || !firingTemp || !kilnSpace || !payment) {
+      alert('Please fill required fields');
+      return;
+    }
+    if (kilnSpace === 'cubic' && (!width || !depth || !height)) {
+      alert('Please enter dimensions');
+      return;
+    }
+    
+    const member = members.find(function(m) { return m.id === parseInt(selectedMember); });
+    const cost = calculateCost();
+    
+    const labels = {
+      full: 'Full Kiln',
+      half: '1/2 Kiln',
+      quarter: '1/4 Kiln',
+      round8: '1/2 Round Shelf (up to 8" tall)',
+      round3: '1/2 Round Shelf (up to 3" tall)',
+      cubic: 'By Cubic Inch'
+    };
+    
+    const dims = kilnSpace === 'cubic' ? width + '" x ' + depth + '" x ' + height + '"' : 'N/A';
+    const cubicVal = kilnSpace === 'cubic' ? parseFloat(width) * parseFloat(depth) * parseFloat(height) : null;
+    
+    setLoading(true);
+    const result = await supabase.from('entries').insert([{
+      member_id: parseInt(selectedMember),
+      member_name: member.name,
+      member_email: member.email,
+      description: description || null,
+      any_notes: notes || null,
+      firing_temp: firingTemp,
+      kiln_space: labels[kilnSpace],
+      dimensions: dims,
+      cubic_inches: cubicVal,
+      cost: parseFloat(cost.toFixed(2)),
+      photo: null,
+      payment_method: payment,
+      status: payment === 'venmo' ? 'Paid via Venmo' : 'Bill End of Month'
+    }]);
+    
+    if (result.error) {
+      alert('Error: ' + result.error.message);
+    } else {
+      if (payment === 'venmo') {
+        window.open('https://venmo.com/u/newcomb_BCAT?txn=pay&amount=' + cost.toFixed(2) + '&note=Kiln%20firing%20-%20' + member.name, '_blank');
+      }
+      alert('Entry submitted!');
+      setSelectedMember('');
+      setDescription('');
+      setNotes('');
+      setFiringTemp('');
+      setKilnSpace('');
+      setWidth('');
+      setDepth('');
+      setHeight('');
+      setPayment('');
+      await loadEntries();
+    }
+    setLoading(false);
+  }
+  
+  function exportCSV() {
+    const headers = ['Date', 'Member', 'Email', 'Description', 'Notes', 'Temp', 'Space', 'Dimensions', 'Cost', 'Payment', 'Status'];
+    const rows = entries.map(function(e) {
+      return [
+        new Date(e.created_at).toLocaleDateString(),
+        e.member_name,
+        e.member_email,
+        e.description || '',
+        e.any_notes || '',
+        e.firing_temp,
+        e.kiln_space,
+        e.dimensions,
+        e.cost,
+        e.payment_method === 'venmo' ? 'Venmo' : 'Monthly',
+        e.status
+      ];
+    });
+    const csv = [headers.join(',')].concat(rows.map(function(r) {
+      return r.map(function(c) { return '"' + c + '"'; }).join(',');
+    })).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pottery-entries-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+  }
+  
   function loginAdmin() {
     if (adminPass === 'pottery2024') {
       setIsAdmin(true);
+      setAdminPass('');
     } else {
       alert('Wrong password');
+      setAdminPass('');
     }
   }
   
-  if (!isAdmin) {
+  if (view === 'admin' && !isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-md mx-auto bg-white p-8 rounded border">
-          <h1 className="text-3xl mb-6">Admin Login</h1>
-          <input 
-            type="password"
-            value={adminPass}
-            onChange={function(e) { setAdminPass(e.target.value); }}
-            onKeyPress={function(e) { if (e.key === 'Enter') loginAdmin(); }}
-            placeholder="Enter password"
-            className="w-full px-4 py-2 border rounded mb-4"
-          />
-          <button onClick={loginAdmin} className="w-full bg-black text-white py-2 rounded">
-            Login
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-black text-white py-6 px-6">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 className="text-3xl font-light">Pottery Studio Manager</h1>
+            <div className="flex gap-2">
+              <button onClick={function() { setView('member'); }} className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700">Member Portal</button>
+              <button onClick={function() { setView('admin'); }} className="px-4 py-2 rounded bg-green-600">Admin Panel</button>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-md mx-auto px-6 py-12">
+          <div className="bg-white p-8 rounded border">
+            <h2 className="text-2xl font-light mb-6">Admin Login</h2>
+            <input 
+              type="password"
+              value={adminPass}
+              onChange={function(e) { setAdminPass(e.target.value); }}
+              onKeyPress={function(e) { if (e.key === 'Enter') loginAdmin(); }}
+              placeholder="Enter password"
+              className="w-full px-4 py-2 border rounded mb-4"
+            />
+            <button onClick={loginAdmin} className="w-full bg-green-600 text-white py-3 rounded">Login</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (view === 'admin') {
+    const unbilled = entries.filter(function(e) { return e.status === 'Bill End of Month'; }).reduce(function(sum, e) { return sum + parseFloat(e.cost); }, 0).toFixed(2);
+    
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-black text-white py-6 px-6">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 className="text-3xl font-light">Pottery Studio Manager</h1>
+            <div className="flex gap-2">
+              <button onClick={function() { setView('member'); setIsAdmin(false); }} className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700">Member Portal</button>
+              <button className="px-4 py-2 rounded bg-green-600">Admin Panel</button>
+              <button onClick={function() { setIsAdmin(false); }} className="px-4 py-2 rounded bg-red-600">Logout</button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white border rounded p-6">
+              <p className="text-sm text-gray-600">Total Members</p>
+              <p className="text-3xl font-light mt-1">{members.length}</p>
+            </div>
+            <div className="bg-white border rounded p-6">
+              <p className="text-sm text-gray-600">Total Entries</p>
+              <p className="text-3xl font-light mt-1">{entries.length}</p>
+            </div>
+            <div className="bg-white border rounded p-6">
+              <p className="text-sm text-gray-600">Unbilled</p>
+              <p className="text-3xl font-light text-green-700 mt-1">${unbilled}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white border rounded p-8 mb-6">
+            <h2 className="text-2xl font-light mb-6">Add New Member</h2>
+            {loading && <div className="text-blue-600 mb-4">Loading...</div>}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Name</label>
+                <input type="text" value={newName} onChange={function(e) { setNewName(e.target.value); }} className="w-full px-4 py-2 border rounded" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Email</label>
+                <input type="email" value={newEmail} onChange={function(e) { setNewEmail(e.target.value); }} className="w-full px-4 py-2 border rounded" />
+              </div>
+            </div>
+            <button onClick={addMember} disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded disabled:bg-gray-400">{loading ? 'Adding...' : 'Add Member'}</button>
+          </div>
+          
+          <div className="bg-white border rounded p-8 mb-6">
+            <h2 className="text-2xl font-light mb-6">All Members ({members.length})</h2>
+            {members.length === 0 ? (
+              <p className="text-gray-500">No members yet</p>
+            ) : (
+              <div className="space-y-2">
+                {members.map(function(m) {
+                  return (
+                    <div key={m.id} className="p-3 bg-gray-50 rounded border">
+                      <p className="font-medium">{m.name}</p>
+                      <p className="text-sm text-gray-600">{m.email}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          <div className="bg-white border rounded p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-light">All Entries ({entries.length})</h2>
+              <button onClick={exportCSV} className="bg-green-600 text-white px-4 py-2 rounded">Export CSV</button>
+            </div>
+            {entries.length === 0 ? (
+              <p className="text-gray-500">No entries yet</p>
+            ) : (
+              <div className="space-y-4">
+                {entries.map(function(e) {
+                  return (
+                    <div key={e.id} className="border rounded p-4">
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="font-semibold">{e.member_name}</p>
+                          <p className="text-sm text-gray-600">{e.description}</p>
+                          <p className="text-xs text-gray-500">{e.any_notes}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-semibold text-green-700">${e.cost}</p>
+                          <span className={'text-xs px-2 py-1 rounded ' + (e.status === 'Paid via Venmo' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800')}>{e.status}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-3 text-sm text-gray-600">
+                        <div>Date: {new Date(e.created_at).toLocaleDateString()}</div>
+                        <div>Temp: {e.firing_temp}</div>
+                        <div>Space: {e.kiln_space}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -97,64 +325,112 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-black text-white py-6 px-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-light">Pottery Studio Manager - Admin</h1>
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <h1 className="text-3xl font-light">Pottery Studio Manager</h1>
+          <button onClick={function() { setView('admin'); }} className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700">Admin Panel</button>
         </div>
       </div>
       
       <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="bg-white border rounded-lg p-8">
-          <h2 className="text-2xl font-light mb-6">Add New Member</h2>
-          
+        <div className="bg-white border rounded p-8">
+          <h2 className="text-2xl font-light mb-6">Submit Piece for Firing</h2>
           {loading && <div className="text-blue-600 mb-4">Loading...</div>}
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Name</label>
-              <input 
-                type="text"
-                value={newName}
-                onChange={function(e) { setNewName(e.target.value); }}
-                className="w-full px-4 py-2 border rounded"
-              />
+              <label className="block text-sm font-medium mb-2">Select Your Name *</label>
+              <select value={selectedMember} onChange={function(e) { setSelectedMember(e.target.value); }} className="w-full px-4 py-2 border rounded">
+                <option value="">Choose your name...</option>
+                {members.map(function(m) { return <option key={m.id} value={m.id}>{m.name}</option>; })}
+              </select>
             </div>
+            
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <input 
-                type="email"
-                value={newEmail}
-                onChange={function(e) { setNewEmail(e.target.value); }}
-                className="w-full px-4 py-2 border rounded"
-              />
+              <label className="block text-sm font-medium mb-2">Description</label>
+              <input type="text" value={description} onChange={function(e) { setDescription(e.target.value); }} placeholder="e.g., Large bowl" className="w-full px-4 py-2 border rounded" />
             </div>
-          </div>
-          
-          <button 
-            onClick={addMember}
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded disabled:bg-gray-400"
-          >
-            {loading ? 'Adding...' : 'Add Member'}
-          </button>
-        </div>
-        
-        <div className="bg-white border rounded-lg p-8 mt-6">
-          <h2 className="text-2xl font-light mb-6">All Members ({members.length})</h2>
-          
-          {members.length === 0 ? (
-            <p className="text-gray-500">No members yet. Add your first member above!</p>
-          ) : (
-            <div className="space-y-2">
-              {members.map(function(m) {
-                return (
-                  <div key={m.id} className="p-3 bg-gray-50 rounded border">
-                    <p className="font-medium">{m.name}</p>
-                    <p className="text-sm text-gray-600">{m.email}</p>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Any Notes?</label>
+              <input type="text" value={notes} onChange={function(e) { setNotes(e.target.value); }} placeholder="e.g., Blue glaze" className="w-full px-4 py-2 border rounded" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Firing Temperature *</label>
+              <select value={firingTemp} onChange={function(e) { setFiringTemp(e.target.value); }} className="w-full px-4 py-2 border rounded">
+                <option value="">Select...</option>
+                <option value="Bisque (Cone 04)">Bisque (Cone 04)</option>
+                <option value="Bisque (Cone 05)">Bisque (Cone 05)</option>
+                <option value="Bisque (Cone 06)">Bisque (Cone 06)</option>
+                <option value="Glaze (Cone 6)">Glaze (Cone 6)</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Kiln Space *</label>
+              <select value={kilnSpace} onChange={function(e) { setKilnSpace(e.target.value); }} className="w-full px-4 py-2 border rounded">
+                <option value="">Select...</option>
+                <option value="full">Full Kiln - $65</option>
+                <option value="half">1/2 Kiln - $40</option>
+                <option value="quarter">1/4 Kiln - $25</option>
+                <option value="round8">1/2 Round Shelf (up to 8" tall) - $20</option>
+                <option value="round3">1/2 Round Shelf (up to 3" tall) - $10</option>
+                <option value="cubic">By Cubic Inch ($0.02/in³, $2 min)</option>
+              </select>
+            </div>
+            
+            {kilnSpace === 'cubic' && (
+              <div className="bg-gray-50 p-4 rounded border">
+                <h3 className="font-medium mb-3">Dimensions (inches)</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">Width *</label>
+                    <input type="number" step="0.5" value={width} onChange={function(e) { setWidth(e.target.value); }} className="w-full px-3 py-2 border rounded" />
                   </div>
-                );
-              })}
+                  <div>
+                    <label className="block text-sm mb-1">Depth *</label>
+                    <input type="number" step="0.5" value={depth} onChange={function(e) { setDepth(e.target.value); }} className="w-full px-3 py-2 border rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Height *</label>
+                    <input type="number" step="0.5" value={height} onChange={function(e) { setHeight(e.target.value); }} className="w-full px-3 py-2 border rounded" />
+                  </div>
+                </div>
+                <div className="mt-3 text-right">
+                  <span className="text-sm">Cost: </span>
+                  <span className="text-xl font-semibold text-green-600">${calculateCost().toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+            
+            {kilnSpace && kilnSpace !== 'cubic' && (
+              <div className="bg-green-50 p-4 rounded border border-green-200">
+                <div className="text-right">
+                  <span className="text-sm">Cost: </span>
+                  <span className="text-2xl font-semibold text-green-700">${calculateCost().toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Payment Method *</label>
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer bg-white border px-4 py-3 rounded">
+                  <input type="radio" name="payment" value="venmo" checked={payment === 'venmo'} onChange={function(e) { setPayment(e.target.value); }} className="mr-3" />
+                  <span className="font-medium text-blue-600">Pay Now via Venmo</span>
+                </label>
+                <label className="flex items-center cursor-pointer bg-white border px-4 py-3 rounded">
+                  <input type="radio" name="payment" value="monthly" checked={payment === 'monthly'} onChange={function(e) { setPayment(e.target.value); }} className="mr-3" />
+                  <span className="font-medium text-green-600">Bill at End of Month</span>
+                </label>
+              </div>
             </div>
-          )}
+            
+            <button onClick={submitEntry} disabled={loading} className="w-full bg-black hover:bg-gray-800 text-white py-3 rounded disabled:bg-gray-400">
+              {loading ? 'Submitting...' : 'Submit for Firing'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
