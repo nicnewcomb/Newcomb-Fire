@@ -35,6 +35,9 @@ function App() {
   const [depth, setDepth] = useState('');
   const [height, setHeight] = useState('');
   const [payment, setPayment] = useState('');
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [otherTemp, setOtherTemp] = useState('');
   
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -86,9 +89,28 @@ function App() {
     return rates[kilnSpace] || 0;
   }
   
+  function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      alert('Photo too large. Max 1MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      setPhoto(reader.result);
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+  
   async function submitEntry() {
     if (!selectedMember || !firingTemp || !kilnSpace || !payment) {
       alert('Please fill required fields');
+      return;
+    }
+    if (firingTemp === 'Other' && !otherTemp) {
+      alert('Please specify firing temperature');
       return;
     }
     if (kilnSpace === 'cubic' && (!width || !depth || !height)) {
@@ -98,6 +120,8 @@ function App() {
     
     const member = members.find(function(m) { return m.id === parseInt(selectedMember); });
     const cost = calculateCost();
+    
+    const finalTemp = firingTemp === 'Other' ? otherTemp : firingTemp;
     
     const labels = {
       full: 'Full Kiln',
@@ -118,12 +142,12 @@ function App() {
       member_email: member.email,
       description: description || null,
       any_notes: notes || null,
-      firing_temp: firingTemp,
+      firing_temp: finalTemp,
       kiln_space: labels[kilnSpace],
       dimensions: dims,
       cubic_inches: cubicVal,
       cost: parseFloat(cost.toFixed(2)),
-      photo: null,
+      photo: photo,
       payment_method: payment,
       status: payment === 'venmo' ? 'Paid via Venmo' : 'Bill End of Month'
     }]);
@@ -144,6 +168,9 @@ function App() {
       setDepth('');
       setHeight('');
       setPayment('');
+      setPhoto(null);
+      setPhotoPreview(null);
+      setOtherTemp('');
       await loadEntries();
     }
     setLoading(false);
@@ -365,6 +392,31 @@ function App() {
                 <option value="Glaze (Cone 6)">Glaze (Cone 6)</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+            
+            {firingTemp === 'Other' && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Specify Firing Temperature *</label>
+                <input 
+                  type="text" 
+                  value={otherTemp} 
+                  onChange={function(e) { setOtherTemp(e.target.value); }} 
+                  placeholder="e.g., Cone 10, Raku, etc." 
+                  className="w-full px-4 py-2 border rounded" 
+                />
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Photo of Piece</label>
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded border">
+                  Upload Photo
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                </label>
+                {photoPreview && <img src={photoPreview} alt="Preview" className="h-20 w-20 object-cover rounded border-2" />}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Max 1MB</p>
             </div>
             
             <div>
