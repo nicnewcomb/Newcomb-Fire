@@ -2,85 +2,161 @@
 
 <html>
 <head>
-<title>Supabase Test</title>
+<title>Pottery Studio Manager</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<h1>Testing Supabase Connection...</h1>
 <div id="root"></div>
-<div id="status"></div>
-
-<script>
-// Test if Supabase library loaded
-if (window.supabase) {
-  document.getElementById('status').innerHTML = '<p style="color:green">✓ Supabase library loaded</p>';
-} else {
-  document.getElementById('status').innerHTML = '<p style="color:red">✗ Supabase library FAILED to load</p>';
-}
-</script>
 
 <script type="text/babel">
 const {useState, useEffect} = React;
 
+const supabase = window.supabase.createClient(
+  'https://bvciswqwilpqvcbqesyp.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2lzd3F3aWxwcXZjYnFlc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MjQ3MDAsImV4cCI6MjA4NTQwMDcwMH0.kgt86QcNIWLfLaEF8h5ZbGJ61nYXIFvNXvtfQcikiTM'
+);
+
 function App() {
-  const [status, setStatus] = useState('Initializing...');
+  const [view, setView] = useState('add');
   const [members, setMembers] = useState([]);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [adminPass, setAdminPass] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(function() {
-    testConnection();
+    loadMembers();
   }, []);
   
-  async function testConnection() {
-    try {
-      setStatus('Creating Supabase client...');
-      
-      const supabase = window.supabase.createClient(
-        'https://bvciswqwilpqvcbqesyp.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2lzd3F3aWxwcXZjYnFlc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MjQ3MDAsImV4cCI6MjA4NTQwMDcwMH0.kgt86QcNIWLfLaEF8h5ZbGJ61nYXIFvNXvtfQcikiTM'
-      );
-      
-      setStatus('Client created! Fetching members...');
-      
-      const result = await supabase.from('members').select('*');
-      
-      if (result.error) {
-        setError('Database error: ' + result.error.message);
-        setStatus('Failed');
-      } else {
-        setMembers(result.data || []);
-        setStatus('Success! Found ' + (result.data ? result.data.length : 0) + ' members');
-      }
-      
-    } catch (e) {
-      setError('Caught error: ' + e.message);
-      setStatus('Failed with exception');
+  async function loadMembers() {
+    setLoading(true);
+    const result = await supabase.from('members').select('*').order('name');
+    if (result.data) {
+      setMembers(result.data);
+    }
+    setLoading(false);
+  }
+  
+  async function addMember() {
+    if (!newName || !newEmail) {
+      alert('Please enter name and email');
+      return;
+    }
+    
+    setLoading(true);
+    const result = await supabase.from('members').insert([{
+      name: newName,
+      email: newEmail
+    }]);
+    
+    if (result.error) {
+      alert('Error: ' + result.error.message);
+    } else {
+      alert('Member added!');
+      setNewName('');
+      setNewEmail('');
+      await loadMembers();
+    }
+    setLoading(false);
+  }
+  
+  function loginAdmin() {
+    if (adminPass === 'pottery2024') {
+      setIsAdmin(true);
+    } else {
+      alert('Wrong password');
     }
   }
   
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-md mx-auto bg-white p-8 rounded border">
+          <h1 className="text-3xl mb-6">Admin Login</h1>
+          <input 
+            type="password"
+            value={adminPass}
+            onChange={function(e) { setAdminPass(e.target.value); }}
+            onKeyPress={function(e) { if (e.key === 'Enter') loginAdmin(); }}
+            placeholder="Enter password"
+            className="w-full px-4 py-2 border rounded mb-4"
+          />
+          <button onClick={loginAdmin} className="w-full bg-black text-white py-2 rounded">
+            Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div style={{padding: '20px', fontFamily: 'sans-serif'}}>
-      <h2>Connection Status: {status}</h2>
-      
-      {error && (
-        <div style={{background: '#fee', border: '1px solid red', padding: '10px', marginTop: '10px'}}>
-          <strong>Error:</strong> {error}
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-black text-white py-6 px-6">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-light">Pottery Studio Manager - Admin</h1>
         </div>
-      )}
+      </div>
       
-      {members.length > 0 && (
-        <div style={{marginTop: '20px'}}>
-          <h3>Members found:</h3>
-          <ul>
-            {members.map(function(m) {
-              return <li key={m.id}>{m.name} - {m.email}</li>;
-            })}
-          </ul>
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="bg-white border rounded-lg p-8">
+          <h2 className="text-2xl font-light mb-6">Add New Member</h2>
+          
+          {loading && <div className="text-blue-600 mb-4">Loading...</div>}
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Name</label>
+              <input 
+                type="text"
+                value={newName}
+                onChange={function(e) { setNewName(e.target.value); }}
+                className="w-full px-4 py-2 border rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input 
+                type="email"
+                value={newEmail}
+                onChange={function(e) { setNewEmail(e.target.value); }}
+                className="w-full px-4 py-2 border rounded"
+              />
+            </div>
+          </div>
+          
+          <button 
+            onClick={addMember}
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-2 rounded disabled:bg-gray-400"
+          >
+            {loading ? 'Adding...' : 'Add Member'}
+          </button>
         </div>
-      )}
+        
+        <div className="bg-white border rounded-lg p-8 mt-6">
+          <h2 className="text-2xl font-light mb-6">All Members ({members.length})</h2>
+          
+          {members.length === 0 ? (
+            <p className="text-gray-500">No members yet. Add your first member above!</p>
+          ) : (
+            <div className="space-y-2">
+              {members.map(function(m) {
+                return (
+                  <div key={m.id} className="p-3 bg-gray-50 rounded border">
+                    <p className="font-medium">{m.name}</p>
+                    <p className="text-sm text-gray-600">{m.email}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
