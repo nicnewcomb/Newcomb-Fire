@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TEST 12345</title>
+<title>Pottery Studio Manager</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,9 +12,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<div id="error" style="background:red;color:white;padding:20px;display:none;">ERROR DETECTED - Check failed</div>
 <div id="root"></div>
 <script type="text/babel">
 const {useState, useEffect} = React;
+if (!window.supabase) {
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('error').innerHTML = 'Supabase library failed to load';
+}
+if (!window.React) {
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('error').innerHTML = 'React library failed to load';
+}
 const supabase = window.supabase.createClient(
   'https://bvciswqwilpqvcbqesyp.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2lzd3F3aWxwcXZjYnFlc3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MjQ3MDAsImV4cCI6MjA4NTQwMDcwMH0.kgt86QcNIWLfLaEF8h5ZbGJ61nYXIFvNXvtfQcikiTM'
